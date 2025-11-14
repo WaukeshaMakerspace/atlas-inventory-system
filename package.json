@@ -1,0 +1,48 @@
+{
+  "name": "atlas",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:seed-tags": "tsx src/db/seed-tags.ts"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.13.0",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^6.1.0",
+    "@mui/material": "^6.1.0",
+    "@mui/material-nextjs": "^7.3.5",
+    "@tanstack/react-query": "^5.90.8",
+    "aws-sdk": "^2.1691.0",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.36.0",
+    "mysql2": "^3.11.0",
+    "next": "^15.1.0",
+    "next-auth": "^4.24.13",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.0",
+    "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.28.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.1.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.6.0"
+  }
+}
