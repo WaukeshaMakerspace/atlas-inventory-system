@@ -45,6 +45,41 @@ export function useResources({ search = '', limit = 20, offset = 0 }: UseResourc
   });
 }
 
+export function useCreateResource() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      modelId: string;
+      locationId: string;
+      serialNumber?: string | null;
+      tagIds?: string[];
+    }) => {
+      const response = await fetch('/api/resources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create resource');
+      }
+
+      const result: ApiResponse<ResourceWithLocation> = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resources'] });
+    },
+  });
+}
+
 export function useUpdateResource() {
   const queryClient = useQueryClient();
 

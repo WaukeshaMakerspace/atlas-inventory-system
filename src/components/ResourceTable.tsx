@@ -12,8 +12,10 @@ import {
   Chip,
   Typography,
   Box,
+  IconButton,
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import EditIcon from '@mui/icons-material/Edit';
 import type { ResourceWithLocation, Tag, TagCategory } from '@/types';
 
 interface ResourceTableProps {
@@ -23,6 +25,8 @@ interface ResourceTableProps {
   rowsPerPage: number;
   onPageChange: (event: unknown, newPage: number) => void;
   onRowsPerPageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onEdit?: (resource: ResourceWithLocation & { tags?: (Tag & { category: TagCategory })[] }) => void;
+  isAuthenticated?: boolean;
 }
 
 export default function ResourceTable({
@@ -32,6 +36,8 @@ export default function ResourceTable({
   rowsPerPage,
   onPageChange,
   onRowsPerPageChange,
+  onEdit,
+  isAuthenticated = false,
 }: ResourceTableProps) {
   if (resources.length === 0) {
     return (
@@ -67,6 +73,11 @@ export default function ResourceTable({
               <TableCell>
                 <strong>Tags</strong>
               </TableCell>
+              {isAuthenticated && (
+                <TableCell align="right">
+                  <strong>Actions</strong>
+                </TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -122,6 +133,17 @@ export default function ResourceTable({
                     )}
                   </Box>
                 </TableCell>
+                {isAuthenticated && (
+                  <TableCell align="right">
+                    <IconButton
+                      size="small"
+                      onClick={() => onEdit?.(resource)}
+                      color="primary"
+                    >
+                      <EditIcon />
+                    </IconButton>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

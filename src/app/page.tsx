@@ -9,16 +9,29 @@ import {
   CircularProgress,
   Alert,
   InputAdornment,
+  Button,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import { useSession } from 'next-auth/react';
+import AddIcon from '@mui/icons-material/Add';
 import ResourceTable from '@/components/ResourceTable';
-import { useResources } from '@/hooks/useResources';
+import ResourceForm, { type ResourceFormData } from '@/components/ResourceForm';
+import { useResources, useUpdateResource, useCreateResource } from '@/hooks/useResources';
+import type { ResourceWithLocation, Tag, TagCategory } from '@/types';
 
 export default function Home() {
+  const { data: session } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingResource, setEditingResource] = useState<(ResourceWithLocation & { tags?: (Tag & { category: TagCategory })[] }) | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const isAuthenticated = !!session;
+  const createMutation = useCreateResource();
+  const updateMutation = useUpdateResource();
 
   // Debounce search input
   useEffect(() => {
@@ -46,6 +59,54 @@ export default function Home() {
     setPage(0);
   };
 
+  const handleAdd = () => {
+    setEditingResource(null);
+    setFormError(null);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (resource: ResourceWithLocation & { tags?: (Tag & { category: TagCategory })[] }) => {
+    setEditingResource(resource);
+    setFormError(null);
+    setFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setFormOpen(false);
+    setEditingResource(null);
+    setFormError(null);
+  };
+
+  const handleSubmit = async (data: ResourceFormData) => {
+    try {
+      setFormError(null);
+
+      if (editingResource) {
+        // Update existing resource
+        await updateMutation.mutateAsync({
+          id: editingResource.id,
+          updates: data,
+        });
+      } else {
+        // Create new resource
+        if (!data.modelId) {
+          setFormError('Please select a resource model');
+          return;
+        }
+        await createMutation.mutateAsync({
+          modelId: data.modelId,
+          locationId: data.locationId,
+          serialNumber: data.serialNumber,
+          tagIds: data.tagIds,
+        });
+      }
+
+      handleCloseForm();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : `Failed to ${editingResource ? 'update' : 'create'} resource`);
+    }
+  };
+
   return (
     <Container maxWidth="xl">
       <Box sx={{ py: 4 }}>
@@ -56,7 +117,7 @@ export default function Home() {
           Search and browse all resources in the makerspace
         </Typography>
 
-        <Box sx={{ mt: 4, mb: 3 }}>
+        <Box sx={{ mt: 4, mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
           <TextField
             fullWidth
             placeholder="Search resources, locations, manufacturers"
@@ -71,6 +132,16 @@ export default function Home() {
             }}
             sx={{ maxWidth: 800 }}
           />
+          {isAuthenticated && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAdd}
+              sx={{ whiteSpace: 'nowrap' }}
+            >
+              Add Resource
+            </Button>
+          )}
         </Box>
 
         {error && (
@@ -93,8 +164,19 @@ export default function Home() {
             rowsPerPage={rowsPerPage}
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
+            onEdit={handleEdit}
+            isAuthenticated={isAuthenticated}
           />
         )}
+
+        <ResourceForm
+          open={formOpen}
+          onClose={handleCloseForm}
+          onSubmit={handleSubmit}
+          editingResource={editingResource}
+          loading={createMutation.isPending || updateMutation.isPending}
+          error={formError}
+        />
       </Box>
     </Container>
   );

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { resourceInstances, resourceModels, locations, tags, tagCategories, resourceInstanceTags } from '@/db/schema';
 import { eq, like, or, sql } from 'drizzle-orm';
+import { randomUUID } from 'crypto';
+import { getServerAuthSession } from '@/lib/auth';
 import type { ApiResponse, ResourceWithLocation, Tag, TagCategory } from '@/types';
 
 export async function GET(request: NextRequest) {
@@ -138,6 +140,122 @@ export async function GET(request: NextRequest) {
     const response: ApiResponse<never> = {
       success: false,
       error: 'Failed to fetch resources',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    };
+
+    return NextResponse.json(response, { status: 500 });
+  }
+}
+
+// POST - Create new resource instance
+export async function POST(request: NextRequest) {
+  try {
+    // Check authentication
+    const session = await getServerAuthSession();
+    if (!session) {
+      const response: ApiResponse<never> = {
+        success: false,
+        error: 'Unauthorized',
+        message: 'You must be logged in to create resources',
+      };
+      return NextResponse.json(response, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { modelId, locationId, serialNumber, tagIds } = body;
+
+    // Validate required fields
+    if (!modelId || !locationId) {
+      const response: ApiResponse<never> = {
+        success: false,
+        error: 'Validation error',
+        message: 'Model and location are required',
+      };
+      return NextResponse.json(response, { status: 400 });
+    }
+
+    // Create new resource instance
+    const instanceId = randomUUID();
+    const newInstance = {
+      id: instanceId,
+      modelId,
+      locationId,
+      serialNumber: serialNumber || null,
+      quantity: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdById: session.user.id,
+    };
+
+    await db.insert(resourceInstances).values(newInstance);
+
+    // Add tags if provided
+    if (tagIds && tagIds.length > 0) {
+      await db.insert(resourceInstanceTags).values(
+        tagIds.map((tagId: string) => ({
+          id: randomUUID(),
+          instanceId,
+          tagId,
+        }))
+      );
+    }
+
+    // Fetch the created resource with all relationships
+    const result = await db
+      .select({
+        instance: resourceInstances,
+        model: resourceModels,
+        location: locations,
+      })
+      .from(resourceInstances)
+      .leftJoin(resourceModels, eq(resourceInstances.modelId, resourceModels.id))
+      .leftJoin(locations, eq(resourceInstances.locationId, locations.id))
+      .where(eq(resourceInstances.id, instanceId))
+      .limit(1);
+
+    if (result.length === 0) {
+      const response: ApiResponse<never> = {
+        success: false,
+        error: 'Failed to fetch created resource',
+      };
+      return NextResponse.json(response, { status: 500 });
+    }
+
+    const { instance, model, location } = result[0];
+
+    // Fetch tags
+    const tagsData = await db
+      .select({
+        tag: tags,
+        category: tagCategories,
+      })
+      .from(resourceInstanceTags)
+      .leftJoin(tags, eq(resourceInstanceTags.tagId, tags.id))
+      .leftJoin(tagCategories, eq(tags.categoryId, tagCategories.id))
+      .where(eq(resourceInstanceTags.instanceId, instanceId));
+
+    const createdResource = {
+      ...instance,
+      model: model!,
+      location: location!,
+      tags: tagsData.map(({ tag, category }) => ({
+        ...tag!,
+        category: category!,
+      })),
+    };
+
+    const response: ApiResponse<typeof createdResource> = {
+      success: true,
+      data: createdResource as any,
+    };
+
+    return NextResponse.json(response, { status: 201 });
+  } catch (error) {
+    console.error('Resources POST error:', error);
+
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Failed to create resource',
       message: error instanceof Error ? error.message : 'Unknown error',
     };
 
