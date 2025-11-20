@@ -19,6 +19,8 @@ export function useResources({ search = '', limit = 20, offset = 0 }: UseResourc
   return useQuery({
     queryKey: ['resources', { search, limit, offset }],
     queryFn: async () => {
+      console.log('Fetching resources with params:', { search, limit, offset });
+
       const params = new URLSearchParams({
         limit: limit.toString(),
         offset: offset.toString(),
@@ -28,18 +30,28 @@ export function useResources({ search = '', limit = 20, offset = 0 }: UseResourc
         params.append('search', search);
       }
 
-      const response = await fetch(`/api/resources?${params}`);
+      const url = `/api/resources?${params}`;
+      console.log('Fetching URL:', url);
+
+      const response = await fetch(url);
+
+      console.log('Response status:', response.status, response.ok);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch resources');
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error(`Failed to fetch resources: ${response.status} ${errorText}`);
       }
 
       const data: ApiResponse<ResourcesResponse> = await response.json();
 
+      console.log('Response data:', data);
+
       if (!data.success) {
-        throw new Error(data.error);
+        throw new Error(data.error || 'Unknown error');
       }
 
+      console.log('Successfully fetched resources:', data.data.resources.length);
       return data.data;
     },
   });

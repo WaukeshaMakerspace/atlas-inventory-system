@@ -1,8 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Enable standalone output for Docker deployment
-  output: 'standalone',
+  // Use standalone output for Docker, default for Amplify
+  // Comment out for Amplify deployment, uncomment for Docker
+  // output: 'standalone',
 
   // Enable compression
   compress: true,

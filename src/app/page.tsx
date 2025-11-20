@@ -44,10 +44,21 @@ export default function Home() {
   }, [searchTerm]);
 
   // Fetch resources using TanStack Query
-  const { data, isLoading, error } = useResources({
+  const { data, isLoading, error, isFetching, isError, status } = useResources({
     search: debouncedSearch,
     limit: rowsPerPage,
     offset: page * rowsPerPage,
+  });
+
+  // Debug logging
+  console.log('Resources query state:', {
+    isLoading,
+    isFetching,
+    isError,
+    status,
+    hasData: !!data,
+    dataLength: data?.resources?.length,
+    error: error?.message,
   });
 
   const handleChangePage = (_event: unknown, newPage: number) => {

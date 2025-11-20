@@ -33,7 +33,22 @@ export default function AppHeader() {
   return (
     <AppBar position="static" elevation={1}>
       <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mr: 4 }}>
+        <Box
+          component={Link}
+          href="/"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            mr: 4,
+            textDecoration: 'none',
+            color: 'inherit',
+            cursor: 'pointer',
+            '&:hover': {
+              opacity: 0.8,
+            },
+          }}
+        >
           <Image
             src="/logo.png"
             alt="WMI Logo"
